@@ -1,6 +1,6 @@
-# open-api-router
+# Overview
 
-A lightly opinionated framework for "contract first" development of Rest APIs with express.  The library uses types generated from an OpenAPI spec to configure express routes, request & response types.
+A lightly opinionated framework for "contract first" development of Rest API with express.  The library uses types generated from an OpenAPI spec to configure express routes, request & response types.
 
 ## Features
 
