@@ -1,20 +1,42 @@
-import {Express, NextFunction, Request, RequestHandler, Response} from 'express';
-import {RequestBody, RequestParams, ResponseList, SuccessResponseType} from './util';
+import {
+  Express,
+  NextFunction,
+  Request,
+  RequestHandler,
+  Response,
+} from 'express';
+import {
+  RequestBody,
+  RequestParams,
+  ResponseList,
+  SuccessResponseType,
+} from './util';
 
-import {OpenAPIV3} from 'openapi-types';
+import { OpenAPIV3 } from 'openapi-types';
 
 /** TODO: Move to package? */
 
-export type APIDef<Paths, Locals extends Record<string, any>, GlobalMiddleware> = {
+export type APIDef<
+  Paths,
+  Locals extends Record<string, any>,
+  GlobalMiddleware
+> = {
   [path in keyof Paths]: {
-    [method in keyof Paths[path]]: OpenApiHandler<Paths[path][method], Locals, GlobalMiddleware>;
+    [method in keyof Paths[path]]: OpenApiHandler<
+      Paths[path][method],
+      Locals,
+      GlobalMiddleware
+    >;
   };
 };
 
 /**
  * Express type for a provided Open API "Operation" type
  */
-export type OpenApiRequest<Operation, Locals extends Record<string, any>> = Request<
+export type OpenApiRequest<
+  Operation,
+  Locals extends Record<string, any>
+> = Request<
   RequestParams<Operation, 'path'>, // params
   Response<ResponseList<Operation>['type']>, // response?
   RequestBody<Operation>, // body
@@ -22,25 +44,39 @@ export type OpenApiRequest<Operation, Locals extends Record<string, any>> = Requ
   Locals // locals (middleware defined)
 >;
 
-export type OpenApiResponse<Operation, Locals extends Record<string, any>> = Response<
-  ResponseList<Operation>['type'],
-  Locals
->;
+export type OpenApiResponse<
+  Operation,
+  Locals extends Record<string, any>
+> = Response<ResponseList<Operation>['type'], Locals>;
 
-export type OpenApiContext<Operation, Locals extends Record<string, any>, GlobalMiddleware> = {
+export type OpenApiContext<
+  Operation,
+  Locals extends Record<string, any>,
+  GlobalMiddleware
+> = {
   req: OpenApiRequest<Operation, Locals>;
   res: OpenApiResponse<Operation, Locals>;
-  openApi: {spec: any; operation: OpenAPIV3.OperationObject};
+  openApi: { spec: any; operation: OpenAPIV3.OperationObject };
   globalMiddleware: GlobalMiddleware;
 };
 
-export type OpenApiHandlerResponse<O> = Promise<SuccessResponseType<ResponseList<O>>>;
+export type OpenApiHandlerResponse<O> = Promise<
+  SuccessResponseType<ResponseList<O>>
+>;
 
-export type OpenApiHandler<Operation, Locals extends Record<string, any>, GlobalMiddleware> = (
+export type OpenApiHandler<
+  Operation,
+  Locals extends Record<string, any>,
+  GlobalMiddleware
+> = (
   context: OpenApiContext<Operation, Locals, GlobalMiddleware>
 ) => OpenApiHandlerResponse<Operation>;
 
-export type InitOpenApiOptions<Paths, Locals extends Record<string, any>, GlobalMiddlewareResult = {}> = {
+export type InitOpenApiOptions<
+  Paths,
+  Locals extends Record<string, any>,
+  GlobalMiddlewareResult = {}
+> = {
   /**
    * The Full OpenAPI Spec (JSON).  Used to provide spec metadata to the handler & middleware
    */
@@ -54,12 +90,18 @@ export type InitOpenApiOptions<Paths, Locals extends Record<string, any>, Global
    * The API -> router handler mapping */
   api?: APIDef<Paths, Locals, GlobalMiddlewareResult>;
 
-  errorHandler?: (context: OpenApiContext<any, Locals, GlobalMiddlewareResult>, err: any, fn: RequestHandler) => void;
+  errorHandler?: (
+    context: OpenApiContext<any, Locals, GlobalMiddlewareResult>,
+    err: any,
+    fn: RequestHandler
+  ) => void;
 
   /**
    * Middleware that runs on EVERY operation.
    * Best for security and other functions that you want to ensure always happen */
-  globalMiddleware?: (context: OpenApiContext<any, Locals, undefined>) => Promise<GlobalMiddlewareResult>;
+  globalMiddleware?: (
+    context: OpenApiContext<any, Locals, undefined>
+  ) => Promise<GlobalMiddlewareResult>;
 };
 
 /**
@@ -67,10 +109,14 @@ export type InitOpenApiOptions<Paths, Locals extends Record<string, any>, Global
  * @param options
  * @returns
  */
-export const initApi = async <Paths, Locals extends Record<string, any>, GlobalMiddleware>(
+export const initApi = async <
+  Paths,
+  Locals extends Record<string, any>,
+  GlobalMiddleware
+>(
   options: InitOpenApiOptions<Paths, Locals, GlobalMiddleware>
 ) => {
-  const {api} = options;
+  const { api } = options;
 
   const registerOperation = await createRegisterOperationFn(options);
 
@@ -90,10 +136,14 @@ export const initApi = async <Paths, Locals extends Record<string, any>, GlobalM
   };
 };
 
-const createRegisterOperationFn = async <Paths, Locals extends Record<string, any>, GlobalMiddleware>(
+const createRegisterOperationFn = async <
+  Paths,
+  Locals extends Record<string, any>,
+  GlobalMiddleware
+>(
   options: InitOpenApiOptions<Paths, Locals, GlobalMiddleware>
 ) => {
-  const {baseUri, openApiSpec, globalMiddleware} = options;
+  const { baseUri, openApiSpec, globalMiddleware } = options;
 
   //todo: move out?
   const parsedSchema = await openApiSpec;
@@ -116,10 +166,14 @@ const createRegisterOperationFn = async <Paths, Locals extends Record<string, an
       const operation = parsedSchema.paths[path as string][method as string];
 
       // build out context...
-      const ctx: OpenApiContext<Paths[P][M], Locals, undefined | GlobalMiddleware> = {
+      const ctx: OpenApiContext<
+        Paths[P][M],
+        Locals,
+        undefined | GlobalMiddleware
+      > = {
         req,
         res,
-        openApi: {spec: parsedSchema, operation},
+        openApi: { spec: parsedSchema, operation },
         globalMiddleware: undefined,
       };
 
@@ -143,7 +197,7 @@ const createRegisterOperationFn = async <Paths, Locals extends Record<string, an
           //TODO do we need to check `res.headersSent`?
           const message = 'message' in err ? err.message : 'Unknown Error';
           const status = 'status' in err ? err.status : 500;
-          res.status(status).json({message});
+          res.status(status).json({ message });
         }
 
         // not sure about how next() is handled here...
@@ -171,8 +225,8 @@ const createRegisterOperationFn = async <Paths, Locals extends Record<string, an
  * @returns The first 2xx status code
  */
 function findSuccessStatusCode(operation: OpenAPIV3.OperationObject) {
-  const successStatusCodes = Object.keys(operation.responses).filter((statusCode) =>
-    String(statusCode).startsWith('2')
+  const successStatusCodes = Object.keys(operation.responses).filter(
+    (statusCode) => String(statusCode).startsWith('2')
   );
   if (successStatusCodes.length === 0) {
     return 200;
@@ -182,9 +236,11 @@ function findSuccessStatusCode(operation: OpenAPIV3.OperationObject) {
 
 export const withMiddleware =
   <O, M, Locals extends Record<string, any>, GlobalMiddleware>(
-    middleware: (ctx: OpenApiContext<O, Locals, GlobalMiddleware>) => Promise<M>,
+    middleware: (
+      ctx: OpenApiContext<O, Locals, GlobalMiddleware>
+    ) => Promise<M>,
     controller: (
-      ctx: OpenApiContext<O, Locals, GlobalMiddleware> & {middleware: M} //TODO: reactor to DRY type
+      ctx: OpenApiContext<O, Locals, GlobalMiddleware> & { middleware: M } //TODO: reactor to DRY type
     ) => OpenApiHandlerResponse<O>
   ): OpenApiHandler<O, Locals, GlobalMiddleware> =>
   async (ctx) => {
