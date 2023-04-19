@@ -207,21 +207,13 @@ const createRegisterOperationFn = async <
       }
     };
 
-    // register the handler
-    switch (method) {
-      case 'get':
-        return app.get(route, fn);
-      case 'post':
-        return app.post(route, fn);
-      case 'put':
-        return app.put(route, fn);
-      case 'delete':
-        return app.delete(route, fn);
-      case 'patch':
-        return app.patch(route, fn);
-      default:
-        throw new Error(`Unsupported method: ${method as string}`);
+    if (['get', 'post', 'put', 'delete', 'patch'].includes(method as string)) {
+      //NOTE: Express likes :param names, but OpenAPI uses {param} names
+      //So we need to conver the route to express format
+      const expressRoute = route.replace(/{/g, ':').replace(/}/g, '');
+      return app[method as keyof Express](expressRoute, fn);
     }
+    throw new Error(`Unsupported method: ${method as string}`);
   };
   return registerOperation;
 };
