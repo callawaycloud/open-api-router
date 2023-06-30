@@ -1,6 +1,6 @@
-# open-api-router
+# Overview
 
-A lightly opinionated framework for "contract first" development of Rest APIs with express.  The library uses types generated from an OpenAPI spec to configure express routes, request & response types.
+A lightly opinionated framework for "contract first" development of Rest API with express, adding "guardrails" in the form of TS types. The library uses types generated from an OpenAPI spec to configure express routes, request & response types.
 
 ## Features
 
@@ -12,13 +12,13 @@ A lightly opinionated framework for "contract first" development of Rest APIs wi
 ## Setup
 
 - install (TBD)
-- `npm i -D openapi-typescript`
-- in package.json add a script to generate types.  A basic example might look like this: `generate:api-types": "openapi-typescript v1/oapi.json --output v1/openApiTypes.ts`
-
+- `npm i -D express-openapi-guardrail-router`
+- in package.json add a script to generate types. A basic example might look like this: `generate:api-types": "openapi-typescript v1/oapi.json --output v1/openApiTypes.ts`
 
 ## Getting Started:
 
 1. Write an OpenAPI spec:
+
 ```yml
 openapi: 3.0.1
 paths:
@@ -54,9 +54,11 @@ paths:
 
 ```typescript
 import { paths } from './openApiTypes'; //generated
-import { validate } from 'SwaggerParser'; 
+import { validate } from 'SwaggerParser';
 
-const openApiSpec = validate('./v1/oapi.json', { dereference: { circular: false } });
+const openApiSpec = validate('./v1/oapi.json', {
+  dereference: { circular: false },
+});
 
 export const v1Api = initApi<any, Locals, GlobalMiddleware>({
   openApiSpec,
@@ -71,7 +73,7 @@ export const v1Api = initApi<any, Locals, GlobalMiddleware>({
 });
 ```
 
-*Things to note:*
+_Things to note:_
 
 - `api` requires all routes & operations to be defined
 - `req` and `res` objects are typed via the OpenAPI spec
@@ -81,7 +83,7 @@ export const v1Api = initApi<any, Locals, GlobalMiddleware>({
 
 ```typescript
 import express from 'express';
-import {v1Api} from './v1';
+import { v1Api } from './v1';
 
 const app: Express = express();
 const port = process.env.PORT || 8000;
@@ -101,22 +103,21 @@ app.use(bodyParser.json());
 })().catch(console.error);
 ```
 
-
 ### Global & Operation level middleware
 
-You can define middleware at the API level using the `initApi.middleware` option.  The middleware receives the `context` and the `fn` to run the entire request.  The example below shows how you might implement a simple global retry mechanism for outbound requests failures.
+You can define middleware at the API level using the `initApi.middleware` option. The middleware receives the `context` and the `fn` to run the entire request. The example below shows how you might implement a simple global retry mechanism for outbound requests failures.
 
 ```typescript
 export const authMiddleware = async (
   ctx: OpenApiContext<any, Locals, GlobalMiddleware>
 ) => {
-    //do some auth
-    const user = getUser(req.headers['x-auth']);
+  //do some auth
+  const user = getUser(req.headers['x-auth']);
 
-    if (!user) {
-        throw new HttpError(401, 'Unauthorized');
-    }
-    return user;
+  if (!user) {
+    throw new HttpError(401, 'Unauthorized');
+  }
+  return user;
 };
 
 export const v1Api = initApi<paths, Locals, GlobalMiddleware>({
@@ -126,41 +127,41 @@ export const v1Api = initApi<paths, Locals, GlobalMiddleware>({
       post: withMiddleware(
         validateBodyMiddleware,
         async ({ globalMiddleware: { user } }) => {
-          return {message: `Hello ${user.name}`};
+          return { message: `Hello ${user.name}` };
         }
       ),
     },
-  }
+  },
 });
 ```
 
 You can also add middleware to the operation via the `withMiddleware` function:
 
 ```typescript
-
 withMiddleware(
   async (ctx) => {
-    return {foo: 'bar'}
+    return { foo: 'bar' };
   },
-  ({req, middleware: { foo }}) => {
+  ({ req, middleware: { foo } }) => {
     return foo;
   }
-)
+);
 ```
 
-In both instances, middleware can be combine using functional composition.  The framework provides some helper functions to make this easier.
+In both instances, middleware can be combine using functional composition. The framework provides some helper functions to make this easier.
 
-`sequence`: executes functions in sequence, combining the result with the input and passing it to the next function.  The results of all functions are merged and returned as a single object.
-`parallel`: executes a set of middleware in parallel and returns the results as an object. 
+`sequence`: executes functions in sequence, combining the result with the input and passing it to the next function. The results of all functions are merged and returned as a single object.
+`parallel`: executes a set of middleware in parallel and returns the results as an object.
 
 ```typescript
 const combinedMiddleware = sequence(
-  async (ctx) => parallel({
-    "m1": () => 'hello',
-    "m2": () => 'world'
-  }),
-  ({m1, m2}) => ({m3: `${m1} ${m2}`})
-)
+  async (ctx) =>
+    parallel({
+      m1: () => 'hello',
+      m2: () => 'world',
+    }),
+  ({ m1, m2 }) => ({ m3: `${m1} ${m2}` })
+);
 ```
 
 A full on functional library like `fp-ts` is recommended for more complex middleware composition.
@@ -177,7 +178,7 @@ export const handler = async ({ req, res }) => {
 };
 ```
 
-You can define a custom error handler at the API level using the `initApi.errorHandler` option.  The handler receives the `error`, the `context` and the `fn` to run the entire request.  
+You can define a custom error handler at the API level using the `initApi.errorHandler` option. The handler receives the `error`, the `context` and the `fn` to run the entire request.
 
 The example below shows how you might implement a simple global retry mechanism for outbound requests failures.
 
@@ -229,13 +230,13 @@ export class OutboundHttpError extends Error {
 import { initApi } from '{tbd}';
 import { errorHandler } from './errorHandler';
 
-export const v1Api = initApi<paths, {retryAttempts: number}, {}>({
+export const v1Api = initApi<paths, { retryAttempts: number }, {}>({
   openApiSpec,
   baseUri: '/v1',
-  errorHandler
+  errorHandler,
   //...
 });
-``` 
+```
 
 ### Defining a "Partial API"
 
@@ -258,10 +259,10 @@ export const v1Api = initApi<paths, Locals, GlobalMiddleware>({
   api: {
     '/ping': {
       post: async () => {
-          return {
-            uptime: process.uptime()
-          };
-        }
+        return {
+          uptime: process.uptime(),
+        };
+      },
     },
     ...invoices,
     ...orders,
@@ -275,36 +276,32 @@ Use `Pick` to choose the subset of the API you want to implement:
 // /v1/resources/invoices.ts
 export const invoices: Pick<V1ApiDef, '/invoices' | '/invoices/:id'> = {
   '/invoices': {
-    get: async ({ req, res }) => {
-    }
+    get: async ({ req, res }) => {},
   },
-  '/invoice/:id':{
-    get: async ({ req, res }) => {
-    }
+  '/invoice/:id': {
+    get: async ({ req, res }) => {},
     //...
-  }
-}
+  },
+};
 ```
 
 Or index types to implement just the operations you want:
 
 ```typescript
-export const invoiceOperations: V1ApiDef['/invoices'] =  {
-  get: ({req, res}) => {
-    //... 
-  }
-}
+export const invoiceOperations: V1ApiDef['/invoices'] = {
+  get: ({ req, res }) => {
+    //...
+  },
+};
 
-export const getInvoices: V1ApiDef['/invoices']['get'] = ({req, res}) => {
-  //... 
-}
+export const getInvoices: V1ApiDef['/invoices']['get'] = ({ req, res }) => {
+  //...
+};
 ```
-
-
 
 ## Limitations
 
 - Only supports OpenAPI 3.x
 - Currently only supports json response types
 - Currently only supports 1 successful status code per operation (TODO: Document workaround)
-- Error Responses are currently not type restricted by OpenAPI doc.  Recommended using a single, standard, response type if possible.
+- Error Responses are currently not type restricted by OpenAPI doc. Recommended using a single, standard, response type if possible.
