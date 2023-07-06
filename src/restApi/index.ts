@@ -1,3 +1,4 @@
-import { initApi, withMiddleware } from './createApi';
+import { initApi, withMiddleware, APIDef } from './createApi';
+import { HttpError } from './httpError';
 
-export { initApi, withMiddleware };
+export { initApi, withMiddleware, HttpError, APIDef };

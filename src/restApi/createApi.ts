@@ -10,6 +10,7 @@ import {
   RequestParams,
   ResponseList,
   SuccessResponseType,
+  ConcreteParam,
 } from './util';
 
 import { OpenAPIV3 } from 'openapi-types';
@@ -40,7 +41,7 @@ export type OpenApiRequest<
   RequestParams<Operation, 'path'>, // params
   Response<ResponseList<Operation>['type']>, // response?
   RequestBody<Operation>, // body
-  RequestParams<Operation, 'query'>, // query
+  RequestParams<ConcreteParam<Operation>, 'query'>, // query
   Locals // locals (middleware defined)
 >;
 
