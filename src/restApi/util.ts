@@ -1,8 +1,5 @@
-type ConcreteType<Type> = {
-  [Property in keyof Type]-?: Type[Property];
-};
 export type ConcreteParam<O> = {
-  parameters: O extends { parameters: any } ? ConcreteType<O['parameters']> : O;
+  parameters: O extends { parameters: any } ? Required<O['parameters']> : O;
 };
 
 type Operation = {
